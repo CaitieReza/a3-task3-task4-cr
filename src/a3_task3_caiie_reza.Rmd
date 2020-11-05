@@ -1,0 +1,145 @@
+---
+title: "a3_task3_caitie_reza"
+author: "Caitie Reza"
+date: "11/2/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(janitor)
+library(here)
+library(lubridate)
+library(ggplot2)
+```
+
+### Summary
+
+####    In this document, I will explore, visualize, and statistically analyze purple sea urchin data (urchins.csv) from the Santa Barbara Coastal LTER site. The data was taken as part of the SBC LTER Reef Long-term experiment: Kelp removal: Urchin size frequency distribution.  See below for citation: 
+
+Santa Barbara Coastal LTER and D. Reed. 2020. SBC LTER: Reef: Long-term experiment: Kelp removal: Urchin size frequency distribution ver 20. Environmental Data Initiative. https://doi.org/10.6073/pasta/5a1e9ef03aa47bd2225c0bb98a02a63b (Accessed 2020-11-03).
+
+```{r}
+urchin_data <- read_csv(here("data", "urchins.csv")) %>% 
+  clean_names()
+```
+
+
+### Section 1. Comparing Urchin Size
+##### In this section, I will explore the sizes of purple and red sea urchins by compare their distributions using several graph types (histogram, boxplot). Then, I will create a table with various summary statistics of the urchins data (read in as "urchin_data").
+
+#### 1a. Visualization
+
+```{r}
+ggplot(data = urchin_data, aes(x = size, fill = common_name)) +
+  geom_histogram() +
+  facet_wrap(~ common_name) +
+  theme(legend.position = "none") +
+  labs(x = "Size (cm)", y = "Count (Individual Urchins)",
+       title = "Fig. 1 Size Distribution of Purple and Red Urchins at SBC LTER Site")
+```
+
+
+```{r}
+ggplot(data = urchin_data, aes(x = common_name, y = size)) +
+  geom_boxplot() +
+  labs(x = "Common Name", y = "Size (cm)",
+       title = "Fig. 2 Average Size of Purple and Red Urchins at SBC LTER Site") +
+  theme_gray()
+
+```
+
+#### 1b. Summary Statistics
+Here, I will create a summary table that contains the mean, median, standard deviation, and sample size for purple and red urchins.
+
+
+```{r}
+urchin_summary <- urchin_data %>% 
+  group_by(common_name) %>% 
+  summarize(
+    av_size = mean(size),
+    median_size = median(size),
+    standard_dev = sd(size),
+    sample_size = n())
+
+urchin_summary
+
+```
+
+
+#### Figures 1 and 2, Summary Stats Table
+
+The mean red urchin size is 6.77 +/- 1.89 cm while that of purple urchins is 4.47 +/- 1.18 cm, resulting in a 2.3 cm  difference in average size between the species. The purple urchin distribution (larger sample size) is negatively skewed, while the distribution of red urchin size (smaller sample) is more normal.  
+
+
+
+
+
+
+
+
+### Section 2. Purple Urchin Counts by Site/Year
+
+In this section, I will be exploring counts of purple urchins at each site by year. 
+
+
+#### 2a. purple_urchin Subset
+In a piped sequence, I will create a stored subset of the urchins data called purple_urchins where I: 
+  1) Filter to only include observations for purple urchins
+  2) Convert the date to class “Date” 
+  3) Create a new column that only contains the year
+  4) Create a new column called site_full that contains the full name (not abbreviation) for each of the five site
+
+```{r}
+purple_urchins <- urchin_data %>% 
+  filter(common_name == "Purple Urchin") %>% 
+  mutate(Date = mdy(date)) %>% 
+  mutate(Year = year(Date)) %>% 
+  mutate(site_full = case_when(
+     site %in% "NAPL" ~ "Naples Reef",
+     site %in% "AQUE" ~ "Arroyo Quemado Reef",
+     site %in% "CARP" ~ "Carpinteria Reef",
+     site %in% "MOHK" ~ "Mohawk Reef",
+     site %in% "IVEE" ~ "Isla Vista Reef"))
+  
+
+```
+
+
+#### 2b. Purple Urchin Summary Table
+
+Here, I will make a summary table with urchin counts for each site taken each year. 
+
+
+```{r}
+purple_summary <- purple_urchins %>% 
+  group_by(Year, site_full) %>% 
+  count(site_full) %>% 
+  rename("Urchins" = "n")
+
+purple_summary
+  
+```
+
+#### 2c. Purple Urchin Graph
+
+Here, I will make 5 separate graphs (one for each site) using ggplot to explore the urchin counts each year at every site, using the table I summarized above. I will use facet_wrap to separate by site. 
+
+
+
+```{r}
+ggplot(data = purple_summary, aes(x = Year, y = Urchins)) +
+  geom_col(aes(fill = site_full)) +
+  facet_wrap(~site_full) +
+  theme(legend.position = "none") +
+  labs(y = "Individual Urchins",
+       title = "Purple Urchin Counts at 5 Sites in the SBC LTER")
+```
+
+
+
+
+
+
+
