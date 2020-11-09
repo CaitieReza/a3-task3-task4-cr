@@ -1,0 +1,124 @@
+---
+title: "a3_task4_caitie_reza"
+author: "Caitie Reza"
+date: "11/4/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(here)
+```
+
+## Summary
+
+In this document, I will compare the mean size of purple urchins in CONTROL (no giant kelp removal) or ANNUAL (annual kelp removal) sections of Naples Reef in January 2010. I'll use data (urchins.csv) from the Santa Barbara Coastal LTER site. The data was taken as part of the SBC LTER Reef Long-term experiment: Kelp removal: Urchin size frequency distribution.  See below for citation: 
+
+Santa Barbara Coastal LTER and D. Reed. 2020. SBC LTER: Reef: Long-term experiment: Kelp removal: Urchin size frequency distribution ver 20. Environmental Data Initiative. https://doi.org/10.6073/pasta/5a1e9ef03aa47bd2225c0bb98a02a63b (Accessed 2020-11-03).
+
+```{r}
+urchins_data <- read_csv(here("data", "urchins.csv")) %>% 
+  clean_names()
+```
+
+
+### 1. Wrangling
+
+Here, I will wrangle the urchins data to only include Naples Reef observations for purple urchins observed in January 2010.  I'll use the lubridate function to split up the data by year and month to filter my data. 
+
+```{r}
+naples_urchins <- urchins_data %>% 
+  mutate(Date = mdy(date)) %>% 
+  mutate(Year = year(Date)) %>% 
+  mutate(Month = month(Date)) %>% 
+  filter(site == "NAPL") %>% 
+  filter(Month == "1", Year == 2010, 
+         common_name == "Purple Urchin")
+```
+
+
+### 2. Visualization
+
+Here, I will visualize the size distribution for Purple Urchins in CONTROL (no giant kelp removal) or ANNUAL (annual kelp removal) sections of Naples Reef in January 2010.  I'll make a histogram and a QQ-plot for the size distribution for each of the treatments (Control and Annual) to assess normality. 
+
+
+```{r}
+ggplot(data = naples_urchins, aes(x = size, fill = treatment)) +
+  geom_histogram(bins = 15) +
+  facet_wrap(~treatment) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(x = "Urchin Size (cm)", y = "Count",
+       title = "Purple Urchin Size in Two Sections of Naples Reef in January 2010")
+
+```
+
+
+
+
+
+```{r}
+ggplot(data = naples_urchins, aes(sample = size)) +
+  geom_qq() +
+  facet_wrap(~treatment)
+```
+
+#### Interpretation
+
+Neither of the size distributions of purple urchins in control vs annual treatments are normal, but both are relatively similar to each other.  The histograms have a "comb-like" data spread with peaks on either side of the 3-4ish cm mark, while the QQplots are right skewed. 
+
+
+
+### 3. Descriptive Stats
+
+Here I will create a table describing basic statistical attributes of the naples_urchins data. I'll calculate mean, standard deviation, and sample size using the summarize () function.
+
+
+
+```{r}
+naples_summ <- naples_urchins %>% 
+  group_by(treatment) %>% 
+  summarize(
+    average_size = mean(size),
+    std_dev = sd(size),
+    sample_size = n())
+      
+naples_summ
+```
+
+
+### 4. Two-Sample t-Test
+
+Here, I will compare the means in both populations using a two-sample t-test.  First, I have to split my data into vector groups based on treatment. 
+
+
+```{r}
+# Split data into two vectors
+annual_size <- naples_urchins %>% 
+  filter(treatment == "ANNUAL") %>% 
+  pull(size)
+
+control_size <- naples_urchins %>% 
+  filter(treatment == "CONTROL") %>% 
+  pull(size)
+
+# Perform t-test
+
+t.test(annual_size, control_size)
+```
+#### T-test Interpretation
+
+Purple urchins in the control group (no giant kelp removal) were, on average, smaller than purple urchins in the annual treatment group (annual kelp removal).  Control urchins had a mean of 3.725 cm and annual urchins had a mean of 3.9167 cm, with an actual difference of .1902 cm. My p-value is .2536, meaning that there is about a 25% chance of taking two random samples from both populations that were at least as different as both annual and control samples from this test. 
+
+
+
+
+
+
+
+
+
+
